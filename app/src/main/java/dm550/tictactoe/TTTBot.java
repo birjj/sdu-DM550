@@ -64,8 +64,6 @@ public class TTTBot implements Bot {
 
         // win/blocks win
         int[] surroundings = this.getSurrounding(board, cell);
-        System.out.println("Surroundings for "+cell+": ");
-        System.out.println(Arrays.toString(surroundings));
         for (int p : surroundings) {
             if (p == this.ownID) {
                 // is win
@@ -163,7 +161,7 @@ public class TTTBot implements Bot {
     @Override
     public String debug(TTTBoard board) {
         int size = board.getSize();
-        StringBuilder outp = new StringBuilder("");
+        StringBuilder outp = new StringBuilder("Bot "+this.ownID+"\n");
         for (int y = 0; y < size; ++y) {
             for (int x = 0; x < size; ++x) {
                 Coordinate coord = new XYCoordinate(x,y);
@@ -176,6 +174,7 @@ public class TTTBot implements Bot {
             }
             outp.append("\n");
         }
+        outp.append("\n");
         return outp.toString();
     }
 }

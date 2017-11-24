@@ -54,6 +54,7 @@ public class TTTGame implements Game {
         // if play was by last player
         if (this.currentPlayer == this.numPlayers - this.numBots) {
             for (TTTBot bot : this.bots) {
+                System.out.println(bot.debug(this.board));
                 Coordinate move = bot.getMove(this.board);
                 this.board.addMove(move, bot.getID());
             }
