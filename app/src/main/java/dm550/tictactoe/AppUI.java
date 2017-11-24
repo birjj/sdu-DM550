@@ -28,7 +28,7 @@ public class AppUI extends AppCompatActivity implements UserInterface {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         TextView tv = new TextView(this);
-        tv.setText("Please select the number of players!");
+        tv.setText("Please select the number of human players!");
         layout.addView(tv);
         final NumberPicker np = new NumberPicker(this);
         np.setMinValue(1);
