@@ -41,12 +41,16 @@ public class TTTBot implements Bot {
         /**
          * Cells are valued as such:
          * - For each possible attack line +1 (max 8)
-         * // - Blocks overlap +10 (max 40?)
-         * // - Forces next move onto overlap -50
+         * //- Blocks overlap +10 (max 40?)
+         * //- Forces next move onto overlap -50
          * - Blocks win +100
          * - Is win +3141592
          * This scoring system is meant for 2-player TTT
+         *
+         * Can currently be tricked by going 1 2 5 9 (123\n456\n789)
+         * The overlapping stuff must be implemented to fix
          */
+        // TODO: implement overlap logic
         if (board.getPlayer(cell) != 0) {
             return 0;
         }
