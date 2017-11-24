@@ -24,14 +24,32 @@ public class XYCoordinate implements Coordinate {
         return this.y;
     }
 
+    /**
+     * Checks if the coordinate is on a board of size xSize times ySize
+     * @param xSize
+     * @param ySize
+     * @return
+     */
     @Override
     public boolean checkBoundaries(int xSize, int ySize) {
-        // TODO
+        if (this.x < 0 || this.x >= xSize) {
+            return false;
+        }
+        if (this.y < 0 || this.y >= ySize) {
+            return false;
+        }
+        return true;
     }
 
+    /**
+     * Returns a new XYCoordinate instance representing this coordinate shifted by dx,dy
+     * @param dx
+     * @param dy
+     * @return new XYCoordinate instance
+     */
     @Override
     public Coordinate shift(int dx, int dy) {
-        // TODO
+        return new XYCoordinate(this.x + dx, this.y + dy);
     }
 
 }
