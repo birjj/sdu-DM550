@@ -33,12 +33,12 @@ public class TTTBoard {
     
     /** checks whether the board is free at the given position */
     public boolean isFree(Coordinate c) {
-        // TODO
+        return this.board[c.getX()][c.getY()] == 0;
     }
     
     /** returns the players that made a move on (x,y) or 0 if the positon is free */
     public int getPlayer(Coordinate c) {
-        // TODO
+        return this.board[c.getX()][c.getY()];
     }
     
     /** record that a given player made a move at the given position
@@ -46,24 +46,69 @@ public class TTTBoard {
      * checks that the player number is valid 
      */
     public void addMove(Coordinate c, int player) {
-        // TODO
+        if (!c.checkBoundaries(this.size, this.size)) {
+            throw new IllegalArgumentException("Cannot make move outside board");
+        }
+        if (player <= 0 || player >= this.size) {
+            throw new IllegalArgumentException("Invalid player cannot make move");
+        }
+        this.board[c.getX()][c.getY()] = player;
     }
 
     /** returns true if, and only if, there are no more free positions on the board */
     public boolean checkFull() {
-        // TODO
+        for (int x = 0; x < this.size; ++x) {
+            for (int y = 0; y < this.size; ++y) {
+                if (this.board[x][y] == 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /** returns 0 if no player has won (yet)
      * otherwise returns the number of the player that has three in a row
      */
     public int checkWinning() {
-        // TODO
+        for (int x = 0; x < this.size; ++x) {
+            for (int y = 0; y < this.size; ++y) {
+                for (int i = -1; i < 2; ++i) {
+                    for (int j = -1; j < 2; ++j) {
+                        if (i == 0 && j == 0) { continue; } // don't check ourselves
+                        Coordinate coord = new XYCoordinate(x, y);
+                        if (!coord.checkBoundaries(this.size, this.size)) { continue; }
+                        int winner = this.checkSequence(coord, i, j);
+                        if (winner != 0) {
+                            return winner;
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
     }
     
     /** internal helper function checking one row, column, or diagonal */
     private int checkSequence(Coordinate start, int dx, int dy) {
-        // TODO
+        if (!start.checkBoundaries(this.size, this.size)) {
+            throw new IllegalArgumentException("Cannot check from out of board");
+        }
+        int player = this.board[start.getX()][start.getY()];
+        if (player == 0) {
+            return 0;
+        } // abort early if start isn't filled
+
+        for (int i = 1; i < 3; ++i) {
+            Coordinate coord = start.shift(i*dx, i*dy);
+            if (!coord.checkBoundaries(this.size, this.size)) {
+                return 0; // abort if checking out of bounds
+            }
+            if (this.board[coord.getX()][coord.getY()] != player) {
+                return 0; // abort if found other player's cell
+            }
+        }
+        return player;
     }
     
     /** getter for size of the board */

@@ -52,4 +52,8 @@ public class XYCoordinate implements Coordinate {
         return new XYCoordinate(this.x + dx, this.y + dy);
     }
 
+    @Override
+    public String toString() {
+        return "XYCoord("+this.x+","+this.y+")";
+    }
 }
