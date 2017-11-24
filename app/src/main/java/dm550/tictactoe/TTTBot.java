@@ -41,30 +41,18 @@ public class TTTBot implements Bot {
         /**
          * Cells are valued as such:
          * - For each possible attack line +1 (max 8)
-         * //- Blocks overlap +10 (max 40?)
-         * //- Forces next move onto overlap -50
          * - Blocks win +100
          * - Is win +3141592
          * This scoring system is meant for 2-player TTT
-         *
-         * Can currently be tricked by going 1 2 5 9 (123\n456\n789)
-         * The overlapping stuff must be implemented to fix
          */
-        // TODO: implement overlap logic
         if (board.getPlayer(cell) != 0) {
             return 0;
         }
 
         int score = 0;
-        for (int i = -1; i < 2; ++i) {
-            for (int j = -1; j < 2; ++j) {
-                if (i == 0 && j == 0) { continue; }
-                // attack lines
-                if (this.hasAttackLine(board, cell, i, j)) {
-                    score += 1;
-                }
-            }
-        }
+
+        // attack lines
+        score += this.numAttackLines(board, cell);
 
         // win/blocks win
         int[] surroundings = this.getSurrounding(board, cell);
@@ -72,7 +60,7 @@ public class TTTBot implements Bot {
             if (p == this.ownID) {
                 // is win
                 score += 3141592;
-            } else if (p != 0) {
+            } else if (p > 0) {
                 // blocks win
                 score += 100;
             }
@@ -82,23 +70,20 @@ public class TTTBot implements Bot {
     }
 
     /**
-     * Checks if a cell has an attack line in a specific direction
+     * Gets the number of attack lines from a cell
      */
-    private boolean hasAttackLine(TTTBoard board, Coordinate start, int dx, int dy) {
-        int player = board.getPlayer(start);
-        for (int i = 1; i < 3; ++i) {
-            Coordinate target = start.shift(dx*i, dy*i);
-            if (!target.checkBoundaries(board.getSize(), board.getSize())) {
-                // abort if out of bounds
-                return false;
-            }
-            int targetPlayer = board.getPlayer(target);
-            if (targetPlayer != 0 && targetPlayer != player) {
-                // abort if cell owned by other player is found
-                return false;
+    private int numAttackLines(TTTBoard board, Coordinate cell) {
+        int player = board.getPlayer(cell);
+        int outp = 0;
+
+        int[] surroundings = this.getSurrounding(board, cell);
+        for (int p : surroundings) {
+            if (p == 0 || p == player || p == -player) {
+                ++outp;
             }
         }
-        return true;
+
+        return outp;
     }
 
     /**
@@ -107,7 +92,9 @@ public class TTTBot implements Bot {
      *   by an int representing the player that owns both cells in that direction
      * Finally four of the directions (starting from NE, going clockwise by 45deg)
      *   are represented by an int representing player that owns cells on both sides.
-     * Each int is 0 if no player owns both cells
+     * Int is 0 if both are empty.
+     * Int is -[playerID] if a player owns 1 and the others are empty
+     * Int is -[MIN_VAL] if cells are owned by different players
      * @returns An int[] containing each number
      */
     private int[] getSurrounding(TTTBoard board, Coordinate start) {
@@ -124,12 +111,16 @@ public class TTTBot implements Bot {
                 Coordinate closest = start.shift(dx, dy);
                 Coordinate farthest = start.shift(dx*2, dy*2);
                 if (!farthest.checkBoundaries(size, size)) {
-                    outp[i++] = 0;
+                    outp[i++] = -Integer.MIN_VALUE;
                 } else {
                     int closestPlayer = board.getPlayer(closest);
                     int farthestPlayer = board.getPlayer(farthest);
-                    int player = 0;
-                    if (closestPlayer == farthestPlayer) {
+                    int player = -Integer.MIN_VALUE;
+                    if (closestPlayer == 0) {
+                        player = -farthestPlayer;
+                    } else if (farthestPlayer == 0) {
+                        player = -closestPlayer;
+                    } else if (closestPlayer == farthestPlayer) {
                         player = closestPlayer;
                     }
                     outp[i++] = player;
@@ -141,12 +132,16 @@ public class TTTBot implements Bot {
                     Coordinate right = start.shift(dx, dy);
                     if (!left.checkBoundaries(size, size)
                             || !right.checkBoundaries(size, size)) {
-                        outp[i++] = 0;
+                        outp[i++] = -Integer.MIN_VALUE;
                     } else {
                         int leftPlayer = board.getPlayer(left);
                         int rightPlayer = board.getPlayer(right);
-                        int bothSidesPlayer = 0;
-                        if (leftPlayer == rightPlayer) {
+                        int bothSidesPlayer = -Integer.MIN_VALUE;
+                        if (leftPlayer == 0) {
+                            bothSidesPlayer = -rightPlayer;
+                        } else if (rightPlayer == 0) {
+                            bothSidesPlayer = -leftPlayer;
+                        } else if (leftPlayer == rightPlayer) {
                             bothSidesPlayer = leftPlayer;
                         }
                         outp[i++] = bothSidesPlayer;
