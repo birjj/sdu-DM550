@@ -10,18 +10,37 @@ public class TTTGame implements Game {
 
     /** total number of players */
     private int numPlayers;
+
+    private int numBots;
     
     /** the board we play on */
     private TTTBoard board;
     
     /** the gui for board games */
     private UserInterface ui;
+
+    /** the bots that are playing */
+    private TTTBot[] bots;
     
     /** constructor that gets the number of players */
     public TTTGame(int numPlayers) {
         this.currentPlayer = 1;
         this.numPlayers = numPlayers;
         this.board = new TTTBoard(numPlayers);
+
+        this.bots = new TTTBot[0];
+    }
+    /** constructor that gets the number of players and bots */
+    public TTTGame(int numPlayers, int numBots) {
+        this.currentPlayer = 1;
+        this.numPlayers = numPlayers + numBots;
+        this.numBots = numBots;
+        this.board = new TTTBoard(this.numPlayers);
+
+        this.bots = new TTTBot[numBots];
+        for (int i = 0; i < numBots; ++i) {
+            this.bots[i] = new TTTBot(numPlayers + i + 1);
+        }
     }
 
     @Override
@@ -32,6 +51,14 @@ public class TTTGame implements Game {
     @Override
     public void addMove(Coordinate pos) {
         this.board.addMove(pos, this.currentPlayer);
+        // if play was by last player
+        if (this.currentPlayer == this.numPlayers - this.numBots) {
+            for (TTTBot bot : this.bots) {
+                Coordinate move = bot.getMove(this.board);
+                this.board.addMove(move, bot.getID());
+            }
+            this.currentPlayer = this.numPlayers;
+        }
         if (this.currentPlayer == this.numPlayers) {
             this.currentPlayer = 1;
         } else {

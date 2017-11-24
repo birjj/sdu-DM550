@@ -10,6 +10,7 @@ import android.widget.NumberPicker;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,15 +31,36 @@ public class AppUI extends AppCompatActivity implements UserInterface {
         tv.setText("Please select the number of players!");
         layout.addView(tv);
         final NumberPicker np = new NumberPicker(this);
-        np.setMinValue(2);
-        np.setMaxValue(6);
+        np.setMinValue(1);
+        np.setMaxValue(5);
         layout.addView(np);
+        TextView tv2 = new TextView(this);
+        tv2.setText("Please select the number of bots!");
+        layout.addView(tv2);
+        final NumberPicker npBots = new NumberPicker(this);
+        npBots.setMinValue(0);
+        npBots.setMaxValue(5);
+        layout.addView(npBots);
         Button b = new AppCompatButton(this);
         b.setText("OK");
+
+        final AppUI self = this;
+
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                AppUI.this.startGame(new TTTGame(np.getValue()));
+                int players = np.getValue();
+                int bots = npBots.getValue();
+                if (players + bots < 2) {
+                    Toast.makeText(
+                            self,
+                            "At least 2 players must play",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    return;
+                } else {
+                    AppUI.this.startGame(new TTTGame(players, bots));
+                }
             }
         });
         layout.addView(b);
