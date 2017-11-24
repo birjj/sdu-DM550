@@ -73,9 +73,11 @@ public class TTTBoard {
     public int checkWinning() {
         for (int x = 0; x < this.size; ++x) {
             for (int y = 0; y < this.size; ++y) {
-                for (int i = -1; i < 2; ++i) {
-                    for (int j = -1; j < 2; ++j) {
+                for (int i = 0; i < 2; ++i) { // we don't need to check (-1,?), because those are checked by previous cells
+                    for (int j = -1; j < 2; ++j) { // we *do* need to check (1,-1) (alternative is to check (-1,1))
                         if (i == 0 && j == 0) { continue; } // don't check ourselves
+                        if (i == 0 && j == -1) { continue; } // minor optimization
+
                         Coordinate coord = new XYCoordinate(x, y);
                         if (!coord.checkBoundaries(this.size, this.size)) { continue; }
                         int winner = this.checkSequence(coord, i, j);
@@ -91,9 +93,6 @@ public class TTTBoard {
     
     /** internal helper function checking one row, column, or diagonal */
     private int checkSequence(Coordinate start, int dx, int dy) {
-        if (!start.checkBoundaries(this.size, this.size)) {
-            throw new IllegalArgumentException("Cannot check from out of board");
-        }
         int player = this.board[start.getX()][start.getY()];
         if (player == 0) {
             return 0;
