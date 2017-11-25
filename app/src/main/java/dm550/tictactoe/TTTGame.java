@@ -31,15 +31,15 @@ public class TTTGame implements Game {
         this.bots = new TTTBot[0];
     }
     /** constructor that gets the number of players and bots */
-    public TTTGame(int numPlayers, int numBots) {
+    public TTTGame(int numHumanPlayers, int numBots) {
         this.currentPlayer = 1;
-        this.numPlayers = numPlayers + numBots;
+        this.numPlayers = numHumanPlayers + numBots;
         this.numBots = numBots;
         this.board = new TTTBoard(this.numPlayers);
 
         this.bots = new TTTBot[numBots];
         for (int i = 0; i < numBots; ++i) {
-            this.bots[i] = new TTTBot(numPlayers + i + 1);
+            this.bots[i] = new TTTBot(numHumanPlayers + i + 1, this.numPlayers);
         }
     }
 

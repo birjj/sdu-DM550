@@ -5,8 +5,10 @@ import java.util.stream.Collectors;
 
 public class TTTBot implements Bot {
     private int ownID;
-    public TTTBot(int ID) {
+    private int numPlayers;
+    public TTTBot(int ID, int numPlayers) {
         this.ownID = ID;
+        this.numPlayers = numPlayers;
     }
 
     @Override
@@ -42,6 +44,7 @@ public class TTTBot implements Bot {
          * Cells are valued as such:
          * - For each possible attack line +1 (max 8)
          * - Blocks win +100
+         *     But -10 for number of players between us and blocked
          * - Is win +3141592
          * This scoring system is meant for 2-player TTT
          */
@@ -63,6 +66,9 @@ public class TTTBot implements Bot {
             } else if (p > 0) {
                 // blocks win
                 score += 100;
+
+                // discount block by how many players are between us
+                score -= ((p - this.ownID - 1 + this.numPlayers) % this.numPlayers) * 10;
             }
         }
 
