@@ -52,10 +52,10 @@ public class TTTBot implements Bot {
         int score = 0;
 
         // attack lines
-        score += this.numAttackLines(board, cell);
+        int[] surroundings = this.getSurrounding(board, cell);
+        score += this.numAttackLines(board, cell, surroundings);
 
         // win/blocks win
-        int[] surroundings = this.getSurrounding(board, cell);
         for (int p : surroundings) {
             if (p == this.ownID) {
                 // is win
@@ -72,11 +72,9 @@ public class TTTBot implements Bot {
     /**
      * Gets the number of attack lines from a cell
      */
-    private int numAttackLines(TTTBoard board, Coordinate cell) {
-        int player = board.getPlayer(cell);
+    private int numAttackLines(TTTBoard board, Coordinate cell, int[] surroundings) {
+        int player = this.ownID;
         int outp = 0;
-
-        int[] surroundings = this.getSurrounding(board, cell);
         for (int p : surroundings) {
             if (p == 0 || p == player || p == -player) {
                 ++outp;
@@ -111,6 +109,7 @@ public class TTTBot implements Bot {
                 Coordinate closest = start.shift(dx, dy);
                 Coordinate farthest = start.shift(dx*2, dy*2);
                 if (!farthest.checkBoundaries(size, size)) {
+                    // no surrounding if went out of bounds
                     outp[i++] = -Integer.MIN_VALUE;
                 } else {
                     int closestPlayer = board.getPlayer(closest);
