@@ -1,6 +1,10 @@
 package dm550.tictactoe;
 
+import android.util.SparseIntArray;
+
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 public class TTTBot implements Bot {
@@ -33,6 +37,7 @@ public class TTTBot implements Bot {
                 }
             }
         }
+
         return bestMove;
     }
 
@@ -45,11 +50,12 @@ public class TTTBot implements Bot {
          * - For each possible attack line +1 (max 8)
          * - Blocks win +100
          *     But -10 for number of players between us and blocked
+         * - Forcing onto an overlap -20
          * - Is win +3141592
          * This scoring system is meant for 2-player TTT
          */
         if (board.getPlayer(cell) != 0) {
-            return 0;
+            return -Integer.MIN_VALUE;
         }
 
         int score = 0;
@@ -72,6 +78,15 @@ public class TTTBot implements Bot {
             }
         }
 
+        // avoid forcing onto overlap
+        Coordinate forcedLocation = this.getForcedLocation(board, cell);
+        if (forcedLocation != null) {
+            boolean isOverlap = this.isOverlapped(board, forcedLocation);
+            if (isOverlap) {
+                score -= 20;
+            }
+        }
+
         return score;
     }
 
@@ -91,20 +106,132 @@ public class TTTBot implements Bot {
     }
 
     /**
-     * Checks if a cell is surrounded by cells
-     * Each direction (starting from N, going clockwise by 45deg) is represented
-     *   by an int representing the player that owns both cells in that direction
-     * Finally four of the directions (starting from NE, going clockwise by 45deg)
-     *   are represented by an int representing player that owns cells on both sides.
+     * Gets the location we are forcing an enemy to play on (otherwise we win)
+     * if we place on move
+     */
+    private Coordinate getForcedLocation(final TTTBoard board, Coordinate move) {
+        final Coordinate[] outp = new Coordinate[1]; // can't use just Coordinate because we assign to it later...
+        final int size = board.getSize();
+        final TTTBot self = this;
+        SurroundingReceiver receiver = new SurroundingReceiver() {
+            @Override
+            public void onSurrounding(Coordinate c1, Coordinate c2, int index) {
+                if (outp[0] != null) {
+                    return;
+                }
+                if (!c1.checkBoundaries(size, size)
+                        || !c2.checkBoundaries(size, size)) {
+                    return;
+                }
+
+                int p1 = board.getPlayer(c1);
+                int p2 = board.getPlayer(c2);
+                if (p1 == self.ownID && p2 == 0) {
+                    outp[0] = c2;
+                } else if (p1 == 0 && p2 == self.ownID) {
+                    outp[0] = c1;
+                }
+            }
+        };
+        this.forEachSurrounding(receiver, board, move);
+
+        return outp[0];
+    }
+
+    /**
+     * Checks if a field is covered by multiple attack lines by a single enemy
+     */
+    private boolean isOverlapped(final TTTBoard board, Coordinate cell) {
+        final SparseIntArray playerAttackLines = new SparseIntArray();
+        final int size = board.getSize();
+        SurroundingReceiver receiver = new SurroundingReceiver() {
+            @Override
+            public void onSurrounding(Coordinate c1, Coordinate c2, int index) {
+                if (!c1.checkBoundaries(size, size)
+                        || !c2.checkBoundaries(size, size)) {
+                    return;
+                }
+
+                int p1 = board.getPlayer(c1);
+                int p2 = board.getPlayer(c2);
+                int player;
+                if (p1 != 0 && p2 == 0) {
+                    player = p1;
+                } else if (p1 == 0 && p2 != 0) {
+                    player = p2;
+                } else if (p1 == p2 && p1 != 0) {
+                    player = p1;
+                } else {
+                    return;
+                }
+                playerAttackLines.put(player, playerAttackLines.get(player) + 1);
+            }
+        };
+        this.forEachSurrounding(receiver, board, cell);
+
+        for (int i = 0; i < playerAttackLines.size(); ++i) {
+            int key = playerAttackLines.keyAt(i);
+            if (playerAttackLines.get(key) >= 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if a cell is surrounded by cells. Each direction (see .forEachSurrounding)
+     * is represented in the output array by an integer.
      * Int is 0 if both are empty.
      * Int is -[playerID] if a player owns 1 and the others are empty
      * Int is -[MIN_VAL] if cells are owned by different players
      * @returns An int[] containing each number
      */
-    private int[] getSurrounding(TTTBoard board, Coordinate start) {
-        int[] outp = new int[8 + 4];
-        int i = 0;
-        int size = board.getSize();
+    private int[] getSurrounding(final TTTBoard board, Coordinate start) {
+        final int[] outp = new int[8 + 4];
+        final int size = board.getSize();
+
+        SurroundingReceiver receiver = new SurroundingReceiver() {
+            @Override
+            public void onSurrounding(Coordinate c1, Coordinate c2, int index) {
+                if (!c1.checkBoundaries(size, size)
+                        || !c2.checkBoundaries(size, size)) {
+                    outp[index] = -Integer.MAX_VALUE;
+                } else {
+                    int p1 = board.getPlayer(c1);
+                    int p2 = board.getPlayer(c2);
+                    int player = -Integer.MIN_VALUE;
+                    if (p1 == 0) {
+                        player = -p2;
+                    } else if (p2 == 0) {
+                        player = -p1;
+                    } else if (p1 == p2) {
+                        player = p1;
+                    }
+                    outp[index] = player;
+                }
+
+            }
+        };
+
+        this.forEachSurrounding(
+                receiver,
+                board,
+                start
+        );
+
+        return outp;
+    }
+
+    private interface SurroundingReceiver {
+        public void onSurrounding(Coordinate c1, Coordinate c2, int index);
+    }
+
+    /**
+     * Calls onSurrounding once for each direction (8 times in 45deg intervals clockwise from NW)
+     * and once for each centered direction (4 times in 45deg intervals clockwise from NE)
+     */
+    private void forEachSurrounding(SurroundingReceiver receiver, TTTBoard board, Coordinate start) {
+        int index = 0;
 
         // each direction
         for (int dx = -1; dx < 2; ++dx) {
@@ -114,48 +241,18 @@ public class TTTBot implements Bot {
                 // check both in that direction
                 Coordinate closest = start.shift(dx, dy);
                 Coordinate farthest = start.shift(dx*2, dy*2);
-                if (!farthest.checkBoundaries(size, size)) {
-                    // no surrounding if went out of bounds
-                    outp[i++] = -Integer.MIN_VALUE;
-                } else {
-                    int closestPlayer = board.getPlayer(closest);
-                    int farthestPlayer = board.getPlayer(farthest);
-                    int player = -Integer.MIN_VALUE;
-                    if (closestPlayer == 0) {
-                        player = -farthestPlayer;
-                    } else if (farthestPlayer == 0) {
-                        player = -closestPlayer;
-                    } else if (closestPlayer == farthestPlayer) {
-                        player = closestPlayer;
-                    }
-                    outp[i++] = player;
-                }
+
+                receiver.onSurrounding(closest, farthest, index++);
 
                 // check each side in 4 of the directions
                 if (dx > -1 && !(dy == -1 && dx == 0)) {
                     Coordinate left = start.shift(-dx, -dy);
                     Coordinate right = start.shift(dx, dy);
-                    if (!left.checkBoundaries(size, size)
-                            || !right.checkBoundaries(size, size)) {
-                        outp[i++] = -Integer.MIN_VALUE;
-                    } else {
-                        int leftPlayer = board.getPlayer(left);
-                        int rightPlayer = board.getPlayer(right);
-                        int bothSidesPlayer = -Integer.MIN_VALUE;
-                        if (leftPlayer == 0) {
-                            bothSidesPlayer = -rightPlayer;
-                        } else if (rightPlayer == 0) {
-                            bothSidesPlayer = -leftPlayer;
-                        } else if (leftPlayer == rightPlayer) {
-                            bothSidesPlayer = leftPlayer;
-                        }
-                        outp[i++] = bothSidesPlayer;
-                    }
+
+                    receiver.onSurrounding(left, right, index++);
                 }
             }
         }
-
-        return outp;
     }
 
 
